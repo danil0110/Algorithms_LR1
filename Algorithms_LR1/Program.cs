@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.IO;
 
 namespace Algorithms_LR1
@@ -8,18 +9,21 @@ namespace Algorithms_LR1
     {
         public static void Main(string[] args)
         {
-            
+            FileGeneration("data.bin");
         }
 
-        public static void FileGeneration()
+        public static void FileGeneration(string file)
         {
-            StreamWriter sw = new StreamWriter("data.txt");
+            Stopwatch s = new Stopwatch();
+            BinaryWriter bw = new BinaryWriter(File.Create(file));
             Random rnd = new Random();
-            sw.Write(Convert.ToString(rnd.Next(-200, 200)));
-            while (true)
+            s.Start();
+            while (s.Elapsed < TimeSpan.FromSeconds(30))
             {
-                sw.Write(" " + Convert.ToString(rnd.Next(-200, 200)));
+                bw.Write(rnd.Next(-500, 500));
             }
+            s.Stop();
+            bw.Close();
         }
         
     }
