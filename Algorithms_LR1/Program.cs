@@ -9,41 +9,59 @@ namespace Algorithms_LR1
     {
         public static void Main(string[] args)
         {
-            string filename = "test.bin";
-            // FileGeneration(filename);
-            FileForTest();
+            string filename = "data.bin";
+            Generator(filename, 500);
+            // LargeFileGeneration(filename);
+            Console.WriteLine("Before sort: ");
+            OutputData(filename);
             DirectMerge dm = new DirectMerge(filename);
             dm.Sort();
-        }
-
-        public static void FileForTest()
-        {
-            int[] arr = {8, 23, 5, 65, 44, 33, 1, 6};
-            BinaryWriter bw = new BinaryWriter(File.Create("test.bin"));
-            foreach (var el in arr)
-            {
-                bw.Write(el);
-            }
-            
-            bw.Close();
+            Console.WriteLine("\nAfter sort: ");
+            OutputData(filename);
         }
         
-        public static void FileGeneration(string file)
+        public static void LargeFileGeneration(string file)
         {
-            Stopwatch s = new Stopwatch();
+            //Stopwatch s = new Stopwatch();
             BinaryWriter bw = new BinaryWriter(File.Create(file));
             Random rnd = new Random();
-            s.Start();
-            while (s.Elapsed < TimeSpan.FromSeconds(30))
+            //s.Start();
+            for (int i = 0; i < 256000000; i++)
             {
                 bw.Write(rnd.Next(-500, 500));
             }
-            s.Stop();
+            //s.Stop();
+            bw.Close();
+        }
+
+        public static void OutputData(string file)
+        {
+            BinaryReader br = new BinaryReader(File.Open(file, FileMode.Open));
+            for (int i = 0; i < 100; i++)
+            {
+                if (br.BaseStream.Position == br.BaseStream.Length)
+                {
+                    break;
+                }
+                else
+                {
+                    Console.Write($"{br.ReadInt32()} ");
+                }
+            }
+            
+            br.Close();
+        }
+
+        public static void Generator(string file, int count)
+        {
+            Random rnd = new Random();
+            BinaryWriter bw = new BinaryWriter(File.Create(file));
+            for (int i = 0; i < count; i++)
+            {
+                bw.Write(rnd.Next(-500, 500));
+            }
             bw.Close();
         }
         
     }
-    
-    
-    
 }
