@@ -1,8 +1,7 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Runtime.CompilerServices;
 
 namespace Algorithms_LR1
 {
@@ -14,36 +13,53 @@ namespace Algorithms_LR1
         public DirectMerge(string input)
         {
             FileInput = input;
-            iterations = 1; // степень двойки, количество элементов в каждой последовательности
+            segments = 1;
         }
 
         public void Sort()
         {
-            while (true)
+            iterations = 1; // степень двойки, количество элементов в каждой серии
+            // суть сортировки заключается в распределении на
+            // отсортированные серии. Если после распределения
+            // на 2 вспомогательных файла и слияния высясняется,
+            // что серий было две, значит на следующей итерации,
+            // серия будет одна - файл отсортирован, завершаем работу.
+            while (segments != 2)
             {
                 Console.Write(".");
                 SplitToFiles();
-                // суть сортировки заключается в распределении на
-                // отсортированные последовательности.
-                // если после распределения на 2 вспомогательных файла
-                // выясняется, что последовательность одна, значит файл
-                // отсортирован, завершаем работу.
-                if (segments == 1)
-                {
-                    break;
-                }
                 MergePairs();
             }
+            File.Delete("a.bin");
+            File.Delete("b.bin");
+            Console.WriteLine();
+        }
+
+        public void SortModified()
+        {
+            using (BinaryReader br = new BinaryReader(File.OpenRead(FileInput)))
+            {
+                iterations = br.BaseStream.Length / 4 / 8;
+            }
+
+            while (segments != 2)
+            {
+                Console.Write(".");
+                SplitToFilesModified();
+                MergePairs();
+            }
+            File.Delete("a.bin");
+            File.Delete("b.bin");
             Console.WriteLine();
         }
 
         private void SplitToFiles() // разделение на 2 вспом. файла
         {
-            segments = 1;
             using (BinaryReader br = new BinaryReader(File.OpenRead(FileInput)))
             using (BinaryWriter writerA = new BinaryWriter(File.Create("a.bin", 65536)))
             using (BinaryWriter writerB = new BinaryWriter(File.Create("b.bin", 65536)))
             {
+                segments = 1;
                 long counter = 0;
                 bool flag = true; // запись либо в 1-ый, либо во 2-ой файл
 
@@ -75,6 +91,77 @@ namespace Algorithms_LR1
             }
         }
 
+        [SuppressMessage("ReSharper.DPA", "DPA0003: Excessive memory allocations in LOH")]
+        private void SplitToFilesModified()
+        {
+            using (BinaryReader br = new BinaryReader(File.OpenRead(FileInput)))
+            using (BinaryWriter writerA = new BinaryWriter(File.Create("a.bin", 65536)))
+            using (BinaryWriter writerB = new BinaryWriter(File.Create("b.bin", 65536)))
+            {
+                segments = 1;
+                List<int> array = new List<int>();
+                long counter = 0;
+                bool picked = false;
+                bool flag = true; // запись либо в 1-ый, либо во 2-ой файл
+
+                long length = br.BaseStream.Length;
+                long position = 0;
+                while (position != length)
+                {
+                    // если достигли количества элементов в последовательности -
+                    // меняем флаг для след. файла и обнуляем счетчик количества
+                    if (counter == iterations)
+                    {
+                        array.Sort();
+                        if (flag)
+                        {
+                            foreach (var el in array)
+                            {
+                                writerA.Write(el);
+                            }
+                        }
+                        else
+                        {
+                            foreach (var el in array)
+                            {
+                                writerB.Write(el);
+                            }
+                        }
+
+                        picked = false;
+                        flag = !flag;
+                        counter = 0;
+                        segments++;
+                        array.Clear();
+                    }
+
+                    array.Add(br.ReadInt32());
+                    picked = true;
+                    position += 4;
+                    counter++;
+                }
+
+                if (picked)
+                {
+                    if (flag)
+                    {
+                        foreach (var el in array)
+                        {
+                            writerA.Write(el);
+                        }
+                    }
+                    else
+                    {
+                        foreach (var el in array)
+                        {
+                            writerB.Write(el);
+                        }
+                    }
+                }
+                array.Clear();
+            }
+        }
+
         private void MergePairs() // слияние отсорт. последовательностей обратно в файл
         {
             using (BinaryReader readerA = new BinaryReader(File.OpenRead("a.bin")))
@@ -88,13 +175,8 @@ namespace Algorithms_LR1
                 long lengthB = readerB.BaseStream.Length;
                 long positionA = 0;
                 long positionB = 0;
-                while (true)
+                while (!endA || !endB)
                 {
-                    if (endA && endB)
-                    {
-                        break;
-                    }
-
                     if (counterA == 0 && counterB == 0)
                     {
                         counterA = iterations;
@@ -129,10 +211,6 @@ namespace Algorithms_LR1
                         endB = true;
                     }
 
-                    if (endA && endB && !pickedA && !pickedB)
-                    {
-                        break;
-                    }
                     if (pickedA)
                     {
                         if (pickedB)
