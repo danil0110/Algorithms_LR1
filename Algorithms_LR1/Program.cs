@@ -9,18 +9,38 @@ namespace Algorithms_LR1
         public static void Main(string[] args)
         {
             Stopwatch sw = new Stopwatch();
-            string filename = "data.bin";
+            string filename = "data.bin", input;
             LargeFileGeneration(filename);
-            //Generator(filename, 15, -20, 20);
+            //Generator(filename, 10000, -5000, 5000);
             
             Console.WriteLine("Before sort: ");
             OutputData(filename);
-            
+
             DirectMerge dm = new DirectMerge(filename);
-            sw.Start();
-            dm.SortModified();
-            sw.Stop();
-            
+            Console.Write("Choose method (1 - original / 2 - modified)\n---> ");
+            while (true)
+            {
+                input = Console.ReadLine();
+                if (input == "1")
+                {
+                    sw.Start();
+                    dm.Sort();
+                    sw.Stop();
+                    break;
+                }
+                else if (input == "2")
+                {
+                    sw.Start();
+                    dm.SortModified();
+                    sw.Stop();
+                    break;
+                }
+                else
+                {
+                    Console.Write("Wrong input. Try again.\n---> ");
+                }
+            }
+
             Console.WriteLine("After sort: ");
             OutputData(filename);
             Console.WriteLine($"Elapsed: {(double)sw.ElapsedMilliseconds / 1000} seconds");
