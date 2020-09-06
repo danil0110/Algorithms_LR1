@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -8,157 +9,164 @@ namespace Algorithms_LR1
     public class DirectMerge
     {
         public string FileInput { get; set; }
-        private ulong iterations, segments;
+        private long iterations, segments;
 
         public DirectMerge(string input)
         {
             FileInput = input;
-            iterations = 1;
+            iterations = 1; // степень двойки, количество элементов в каждой последовательности
         }
-        
+
         public void Sort()
         {
             while (true)
             {
+                Console.Write(".");
                 SplitToFiles();
+                // суть сортировки заключается в распределении на
+                // отсортированные последовательности.
+                // если после распределения на 2 вспомогательных файла
+                // выясняется, что последовательность одна, значит файл
+                // отсортирован, завершаем работу.
                 if (segments == 1)
                 {
                     break;
                 }
                 MergePairs();
             }
+            Console.WriteLine();
         }
 
-        private void SplitToFiles()
+        private void SplitToFiles() // разделение на 2 вспом. файла
         {
             segments = 1;
-            BinaryReader br = new BinaryReader(File.Open(FileInput, FileMode.Open));
-            BinaryWriter writerA = new BinaryWriter(File.Create("a.bin"));
-            BinaryWriter writerB = new BinaryWriter(File.Create("b.bin"));
-            ulong counter = 0;
-            bool flag = true;
-            while (br.BaseStream.Position != br.BaseStream.Length)
+            using (BinaryReader br = new BinaryReader(File.OpenRead(FileInput)))
+            using (BinaryWriter writerA = new BinaryWriter(File.Create("a.bin", 65536)))
+            using (BinaryWriter writerB = new BinaryWriter(File.Create("b.bin", 65536)))
             {
-                if (counter == iterations)
+                long counter = 0;
+                bool flag = true; // запись либо в 1-ый, либо во 2-ой файл
+
+                long length = br.BaseStream.Length;
+                long position = 0;
+                while (position != length)
                 {
-                    flag = !flag;
-                    counter = 0;
-                    segments++;
-                }
-                
-                if (flag)
-                {
-                    writerA.Write(br.ReadInt32());
-                    counter++;
-                }
-                else
-                {
-                    writerB.Write(br.ReadInt32());
+                    // если достигли количества элементов в последовательности -
+                    // меняем флаг для след. файла и обнуляем счетчик количества
+                    if (counter == iterations)
+                    {
+                        flag = !flag;
+                        counter = 0;
+                        segments++;
+                    }
+
+                    int element = br.ReadInt32();
+                    position += 4;
+                    if (flag)
+                    {
+                        writerA.Write(element);
+                    }
+                    else
+                    {
+                        writerB.Write(element);
+                    }
                     counter++;
                 }
             }
-            br.Close();
-            writerA.Close();
-            writerB.Close();
         }
 
-        private void MergePairs()
+        private void MergePairs() // слияние отсорт. последовательностей обратно в файл
         {
-            BinaryReader readerA = new BinaryReader(File.Open("a.bin", FileMode.Open));
-            BinaryReader readerB = new BinaryReader(File.Open("b.bin", FileMode.Open));
-            BinaryWriter bw = new BinaryWriter(File.Create(FileInput));
-            ulong counterA = iterations, counterB = iterations;
-            int elementA = 0, elementB = 0;
-            bool pickedA = false, pickedB = false, endA = false, endB = false;
-
-            while (true)
+            using (BinaryReader readerA = new BinaryReader(File.OpenRead("a.bin")))
+            using (BinaryReader readerB = new BinaryReader(File.OpenRead("b.bin")))
+            using (BinaryWriter bw = new BinaryWriter(File.Create(FileInput, 65536)))
             {
-                if (endA && endB)
+                long counterA = iterations, counterB = iterations;
+                int elementA = 0, elementB = 0;
+                bool pickedA = false, pickedB = false, endA = false, endB = false;
+                long lengthA = readerA.BaseStream.Length;
+                long lengthB = readerB.BaseStream.Length;
+                long positionA = 0;
+                long positionB = 0;
+                while (true)
                 {
-                    break;
-                }
-                
-                if (counterA == 0 && counterB == 0)
-                {
-                    counterA = iterations;
-                    counterB = iterations;
-                }
-
-                if (readerA.BaseStream.Position != readerA.BaseStream.Length)
-                {
-                    if (counterA > 0)
+                    if (endA && endB)
                     {
-                        if (!pickedA)
+                        break;
+                    }
+
+                    if (counterA == 0 && counterB == 0)
+                    {
+                        counterA = iterations;
+                        counterB = iterations;
+                    }
+
+                    if (positionA != lengthA)
+                    {
+                        if (counterA > 0 && !pickedA)
                         {
                             elementA = readerA.ReadInt32();
+                            positionA += 4;
                             pickedA = true;
                         }
                     }
-                }
-                else
-                {
-                    endA = true;
-                }
-
-                if (readerB.BaseStream.Position != readerB.BaseStream.Length)
-                {
-                    if (counterB > 0)
+                    else
                     {
-                        if (!pickedB)
+                        endA = true;
+                    }
+
+                    if (positionB != lengthB)
+                    {
+                        if (counterB > 0 && !pickedB)
                         {
                             elementB = readerB.ReadInt32();
+                            positionB += 4;
                             pickedB = true;
                         }
                     }
-                }
-                else
-                {
-                    endB = true;
-                }
-
-                if (endA && endB && pickedA == false && pickedB == false)
-                {
-                    break;
-                }
-                if (pickedA)
-                {
-                    if (pickedB)
+                    else
                     {
-                        if (elementA < elementB)
+                        endB = true;
+                    }
+
+                    if (endA && endB && !pickedA && !pickedB)
+                    {
+                        break;
+                    }
+                    if (pickedA)
+                    {
+                        if (pickedB)
+                        {
+                            if (elementA < elementB)
+                            {
+                                bw.Write(elementA);
+                                counterA--;
+                                pickedA = false;
+                            }
+                            else
+                            {
+                                bw.Write(elementB);
+                                counterB--;
+                                pickedB = false;
+                            }
+                        }
+                        else
                         {
                             bw.Write(elementA);
                             counterA--;
                             pickedA = false;
                         }
-                        else
-                        {
-                            bw.Write(elementB);
-                            counterB--;
-                            pickedB = false;
-                        }
                     }
-                    else
+                    else if (pickedB)
                     {
-                        bw.Write(elementA);
-                        counterA--;
-                        pickedA = false;
+                        bw.Write(elementB);
+                        counterB--;
+                        pickedB = false;
                     }
                 }
-                else if (pickedB)
-                {
-                    bw.Write(elementB);
-                    counterB--;
-                    pickedB = false;
-                }
 
+                iterations *= 2; // увеличиваем размер серии в 2 раза
             }
-
-            iterations *= 2;
-
-            bw.Close();
-            readerA.Close();
-            readerB.Close();
         }
-        
     }
 }

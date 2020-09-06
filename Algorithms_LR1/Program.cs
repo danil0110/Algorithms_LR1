@@ -9,59 +9,65 @@ namespace Algorithms_LR1
     {
         public static void Main(string[] args)
         {
+            Stopwatch sw = new Stopwatch();
             string filename = "data.bin";
-            Generator(filename, 500);
-            // LargeFileGeneration(filename);
+            // Generator(filename, 500);
+            LargeFileGeneration(filename);
             Console.WriteLine("Before sort: ");
             OutputData(filename);
             DirectMerge dm = new DirectMerge(filename);
+            sw.Start();
             dm.Sort();
-            Console.WriteLine("\nAfter sort: ");
+            sw.Stop();
+            Console.WriteLine("After sort: ");
             OutputData(filename);
+            Console.WriteLine($"Elapsed: {(double)sw.ElapsedMilliseconds / 1000} seconds");
         }
-        
+
         public static void LargeFileGeneration(string file)
         {
-            //Stopwatch s = new Stopwatch();
-            BinaryWriter bw = new BinaryWriter(File.Create(file));
-            Random rnd = new Random();
-            //s.Start();
-            for (int i = 0; i < 256000000; i++)
+            using (BinaryWriter bw = new BinaryWriter(File.Create(file, 65536)))
             {
-                bw.Write(rnd.Next(-500, 500));
-            }
-            //s.Stop();
-            bw.Close();
-        }
-
-        public static void OutputData(string file)
-        {
-            BinaryReader br = new BinaryReader(File.Open(file, FileMode.Open));
-            for (int i = 0; i < 100; i++)
-            {
-                if (br.BaseStream.Position == br.BaseStream.Length)
+                Random rnd = new Random();
+                for (int i = 0; i < 270000000; i++)
                 {
-                    break;
-                }
-                else
-                {
-                    Console.Write($"{br.ReadInt32()} ");
+                    bw.Write(rnd.Next(0, 256000000));
                 }
             }
-            
-            br.Close();
         }
 
-        public static void Generator(string file, int count)
+        public static void OutputData(string file) // вывод первых 100 чисел для проверки
         {
-            Random rnd = new Random();
-            BinaryWriter bw = new BinaryWriter(File.Create(file));
-            for (int i = 0; i < count; i++)
+            using (BinaryReader br = new BinaryReader(File.OpenRead(file)))
             {
-                bw.Write(rnd.Next(-500, 500));
+                long length = br.BaseStream.Length;
+                long position = 0;
+                for (int i = 0; i < 100; i++)
+                {
+                    if (position == length)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        Console.Write($"{br.ReadInt32()} ");
+                        position += 4;
+                    }
+                }
+                Console.WriteLine();
             }
-            bw.Close();
         }
-        
+
+        public static void Generator(string file, int count) // для тестов
+        {
+            using (BinaryWriter bw = new BinaryWriter(File.Create(file, 65536)))
+            {
+                Random rnd = new Random();
+                for (int i = 0; i < count; i++)
+                {
+                    bw.Write(rnd.Next(-500, 500));
+                }
+            }
+        }
     }
 }
