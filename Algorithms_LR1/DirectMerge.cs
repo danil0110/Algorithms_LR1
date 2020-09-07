@@ -22,7 +22,7 @@ namespace Algorithms_LR1
             // суть сортировки заключается в распределении на
             // отсортированные серии. Если после распределения
             // на 2 вспомогательных файла и слияния высясняется,
-            // что серий было две, значит на следующей итерации,
+            // что серий было две, значит на следующей итерации
             // серия будет одна - файл отсортирован, завершаем работу.
             while (segments != 2)
             {
@@ -39,7 +39,7 @@ namespace Algorithms_LR1
         {
             using (BinaryReader br = new BinaryReader(File.OpenRead(FileInput)))
             {
-                iterations = br.BaseStream.Length / 4 / 8;
+                iterations = br.BaseStream.Length / 4 / 4;
             }
 
             while (segments != 2)
